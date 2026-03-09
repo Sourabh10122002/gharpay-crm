@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Lead, Visit } from '@/lib/types';
 import Link from 'next/link';
 import { formatDate, cn } from '@/lib/utils';
-import { Phone, Mail, MessageSquare, Calendar, Building2, User, Clock, Check, ChevronDown, MapPin, CheckCircle2 } from 'lucide-react';
+import { Phone, Mail, MessageSquare, Calendar, Building2, User, Clock, Check, ChevronDown, MapPin, CheckCircle2, History } from 'lucide-react';
+import ActivityTimeline from './ActivityTimeline';
+import { ActivityType } from '@/lib/types';
 
 interface LeadProfileProps {
     lead: Lead;
@@ -21,6 +23,31 @@ export default function LeadProfile({ lead: initialLead }: LeadProfileProps) {
     const [isAssigning, setIsAssigning] = useState(false);
     const [showAgentDropdown, setShowAgentDropdown] = useState(false);
     const [loadingVisits, setLoadingVisits] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({
+        name: initialLead.name,
+        phoneNumber: initialLead.phoneNumber,
+        email: initialLead.email || '',
+        source: initialLead.source
+    });
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [activities, setActivities] = useState([]);
+    const [loadingActivities, setLoadingActivities] = useState(false);
+    const [note, setNote] = useState('');
+
+    const fetchActivities = async () => {
+        setLoadingActivities(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/leads/${lead._id || lead.id}/activities`);
+            const data = await response.json();
+            setActivities(data);
+        } catch (error) {
+            console.error('Error fetching activities:', error);
+        } finally {
+            setLoadingActivities(false);
+        }
+    };
 
     const fetchLeadVisits = async () => {
         setLoadingVisits(true);
@@ -49,6 +76,7 @@ export default function LeadProfile({ lead: initialLead }: LeadProfileProps) {
         };
         fetchAgents();
         fetchLeadVisits();
+        fetchActivities();
     }, [lead._id, lead.id]);
 
     const handleAssignAgent = async (agentId: string) => {
@@ -90,9 +118,81 @@ export default function LeadProfile({ lead: initialLead }: LeadProfileProps) {
         }
     };
 
+    const handleMarkAsBooked = async () => {
+        setIsUpdating(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/leads/${lead._id || lead.id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'Booked' })
+            });
+
+            if (response.ok) {
+                const updatedLead = await response.json();
+                setLead(updatedLead);
+                alert('Lead marked as Booked!');
+            }
+        } catch (error) {
+            console.error('Error marking as booked:', error);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleSaveNote = async () => {
+        if (!note.trim()) return;
+        setIsUpdating(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/leads/${lead._id || lead.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    notes: note,
+                    performedBy: 'Current User' // Replace with actual user ID if available
+                })
+            });
+
+            if (response.ok) {
+                setNote('');
+                fetchActivities();
+                alert('Note saved!');
+            }
+        } catch (error) {
+            console.error('Error saving note:', error);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const handleUpdateProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsUpdating(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/leads/${lead._id || lead.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editForm)
+            });
+
+            if (response.ok) {
+                const updatedLead = await response.json();
+                setLead(updatedLead);
+                setIsEditing(false);
+                alert('Profile updated successfully!');
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column: Lead Info */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20">
+            {/* Left Column: Lead Info & History */}
             <div className="lg:col-span-2 space-y-6">
                 <div className="bg-[#181818] rounded-[32px] border border-[#2E2E2E] p-8 shadow-2xl">
                     <div className="flex items-start justify-between mb-10">
@@ -112,11 +212,18 @@ export default function LeadProfile({ lead: initialLead }: LeadProfileProps) {
                             </div>
                         </div>
                         <div className="flex gap-3">
-                            <button className="px-5 py-2.5 bg-[#252525] hover:bg-[#2E2E2E] text-slate-300 rounded-xl font-bold text-sm border border-[#2E2E2E] transition-all">
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="px-5 py-2.5 bg-[#252525] hover:bg-[#2E2E2E] text-slate-300 rounded-xl font-bold text-sm border border-[#2E2E2E] transition-all"
+                            >
                                 Edit Profile
                             </button>
-                            <button className="px-5 py-2.5 bg-[#4ADE80] hover:bg-[#38C172] text-[#121212] rounded-xl font-black text-sm transition-all shadow-lg shadow-[#4ADE80]/20">
-                                Mark as Booked
+                            <button
+                                onClick={handleMarkAsBooked}
+                                disabled={isUpdating || lead.status === 'Booked'}
+                                className="px-5 py-2.5 bg-[#4ADE80] hover:bg-[#38C172] text-[#121212] rounded-xl font-black text-sm transition-all shadow-lg shadow-[#4ADE80]/20 disabled:opacity-50"
+                            >
+                                {isUpdating ? 'Updating...' : lead.status === 'Booked' ? 'Booked ✅' : 'Mark as Booked'}
                             </button>
                         </div>
                     </div>
@@ -222,27 +329,22 @@ export default function LeadProfile({ lead: initialLead }: LeadProfileProps) {
                 </div>
 
                 <div className="bg-[#181818] rounded-[32px] border border-[#2E2E2E] p-8">
-                    <h3 className="text-xl font-black text-white mb-8 tracking-tight">Activity History</h3>
-                    <div className="space-y-8">
-                        {[1].map((i) => (
-                            <div key={i} className="flex gap-6 relative">
-                                <div className="h-10 w-10 rounded-2xl bg-[#252525] border border-[#2E2E2E] flex items-center justify-center relative z-10 shrink-0">
-                                    <Clock className="h-5 w-5 text-[#4ADE80]" />
-                                </div>
-                                <div className="pt-1">
-                                    <p className="text-sm text-slate-300 leading-relaxed">
-                                        <span className="font-bold text-white">System</span> updated status to <span className={cn("font-black text-[#4ADE80]")}>{lead.status}</span>
-                                    </p>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2 px-2 py-1 bg-[#252525] inline-block rounded-lg">Recently</p>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="flex items-center justify-between mb-8">
+                        <h3 className="text-xl font-black text-white tracking-tight">Activity History</h3>
+                        <div className="p-2 bg-[#252525] rounded-xl">
+                            <History className="h-5 w-5 text-[#4ADE80]" />
+                        </div>
                     </div>
+                    {loadingActivities ? (
+                        <p className="text-slate-500 text-sm animate-pulse">Loading timeline...</p>
+                    ) : (
+                        <ActivityTimeline activities={activities} />
+                    )}
                 </div>
             </div>
 
-            {/* Right Column: Actions */}
-            <div className="space-y-8">
+            {/* Right Column: Quick Actions */}
+            <div className="lg:col-span-1 space-y-8">
                 <div className="bg-[#181818] rounded-[32px] border border-[#2E2E2E] p-8">
                     <h3 className="text-xl font-black text-white mb-6 tracking-tight">Quick Actions</h3>
                     <div className="grid grid-cols-1 gap-4">
@@ -274,12 +376,105 @@ export default function LeadProfile({ lead: initialLead }: LeadProfileProps) {
                     <textarea
                         placeholder="Add a note about this lead..."
                         className="w-full h-40 p-5 bg-[#1E1E1E] border border-[#2E2E2E] rounded-2xl text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#4ADE80] focus:border-[#4ADE80] transition-all resize-none placeholder-slate-600"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
                     ></textarea>
-                    <button className="w-full mt-6 bg-[#2E2E2E] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#4ADE80] hover:text-[#121212] transition-all">
-                        Save Note
+                    <button
+                        onClick={handleSaveNote}
+                        disabled={isUpdating || !note.trim()}
+                        className="w-full mt-6 bg-[#2E2E2E] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#4ADE80] hover:text-[#121212] transition-all disabled:opacity-50"
+                    >
+                        {isUpdating ? 'Saving...' : 'Save Note'}
                     </button>
                 </div>
             </div>
+
+            {/* Edit Profile Modal */}
+            {isEditing && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-[#181818] border border-[#2E2E2E] rounded-[32px] p-10 max-w-xl w-full shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 h-40 w-40 bg-[#4ADE80]/5 blur-[100px] rounded-full"></div>
+
+                        <div className="flex items-center gap-6 mb-10 relative z-10">
+                            <div className="h-14 w-14 rounded-2xl bg-[#252525] flex items-center justify-center text-[#4ADE80]">
+                                <User className="h-7 w-7" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-black text-white tracking-tight">Edit Lead Profile</h2>
+                                <p className="text-sm text-slate-500 font-bold mt-1 uppercase tracking-wider">Update Contact Information</p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleUpdateProfile} className="space-y-6 relative z-10">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-2">Lead Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full p-4 bg-[#1E1E1E] border border-[#2E2E2E] rounded-2xl text-sm text-white focus:ring-1 focus:ring-[#4ADE80] outline-none transition-all"
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-2">Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        required
+                                        className="w-full p-4 bg-[#1E1E1E] border border-[#2E2E2E] rounded-2xl text-sm text-white focus:ring-1 focus:ring-[#4ADE80] outline-none transition-all"
+                                        value={editForm.phoneNumber}
+                                        onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-2">Email Address</label>
+                                    <input
+                                        type="email"
+                                        className="w-full p-4 bg-[#1E1E1E] border border-[#2E2E2E] rounded-2xl text-sm text-white focus:ring-1 focus:ring-[#4ADE80] outline-none transition-all"
+                                        value={editForm.email}
+                                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] px-2">Lead Source</label>
+                                <select
+                                    className="w-full p-4 bg-[#1E1E1E] border border-[#2E2E2E] rounded-2xl text-sm text-white focus:ring-1 focus:ring-[#4ADE80] outline-none transition-all appearance-none cursor-pointer"
+                                    value={editForm.source}
+                                    onChange={(e) => setEditForm({ ...editForm, source: e.target.value })}
+                                >
+                                    <option value="Website" className="bg-[#1E1E1E]">Website</option>
+                                    <option value="Referral" className="bg-[#1E1E1E]">Referral</option>
+                                    <option value="Instagram" className="bg-[#1E1E1E]">Instagram</option>
+                                    <option value="Facebook" className="bg-[#1E1E1E]">Facebook</option>
+                                    <option value="Walk-in" className="bg-[#1E1E1E]">Walk-in</option>
+                                    <option value="Other" className="bg-[#1E1E1E]">Other</option>
+                                </select>
+                            </div>
+
+                            <div className="pt-6 flex gap-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditing(false)}
+                                    className="flex-1 py-4 px-6 bg-[#252525] hover:bg-[#2E2E2E] text-slate-400 rounded-2xl font-black text-sm uppercase tracking-widest transition-all border border-[#2E2E2E]"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isUpdating}
+                                    className="flex-1 py-4 px-6 bg-[#4ADE80] hover:bg-[#38C172] text-[#121212] rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-[#4ADE80]/20 transition-all flex items-center justify-center gap-3"
+                                >
+                                    {isUpdating ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

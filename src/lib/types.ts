@@ -59,3 +59,24 @@ export interface Visit {
     outcome: string;
     notes?: string;
 }
+
+export enum ActivityType {
+    STATUS_CHANGE = 'status_change',
+    ASSIGNMENT = 'assignment',
+    VISIT_SCHEDULED = 'visit_scheduled',
+    VISIT_OUTCOME = 'visit_outcome',
+    NOTE_ADDED = 'note_added',
+    PROFILE_UPDATED = 'profile_updated'
+}
+
+export interface Activity {
+    _id: string;
+    type: ActivityType;
+    description: string;
+    performedBy?: {
+        name: string;
+        email: string;
+    };
+    metadata?: any;
+    createdAt: string;
+}
