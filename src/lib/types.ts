@@ -1,0 +1,38 @@
+export enum LeadStatus {
+    NEW_LEAD = 'New Lead',
+    CONTACTED = 'Contacted',
+    REQUIREMENT_COLLECTED = 'Requirement Collected',
+    PROPERTY_SUGGESTED = 'Property Suggested',
+    VISIT_SCHEDULED = 'Visit Scheduled',
+    VISIT_COMPLETED = 'Visit Completed',
+    BOOKED = 'Booked',
+    LOST = 'Lost'
+}
+
+export interface Lead {
+    id?: string;
+    _id?: string;
+    name: string;
+    phoneNumber: string;
+    email?: string;
+    source: string;
+    status: LeadStatus;
+    notes?: string;
+    createdAt: string;
+}
+
+export interface Column {
+    id: LeadStatus;
+    title: string;
+}
+
+export const COLUMNS: Column[] = [
+    { id: LeadStatus.NEW_LEAD, title: 'New Lead' },
+    { id: LeadStatus.CONTACTED, title: 'Contacted' },
+    { id: LeadStatus.REQUIREMENT_COLLECTED, title: 'Requirement Collected' },
+    { id: LeadStatus.PROPERTY_SUGGESTED, title: 'Property Suggested' },
+    { id: LeadStatus.VISIT_SCHEDULED, title: 'Visit Scheduled' },
+    { id: LeadStatus.VISIT_COMPLETED, title: 'Visit Completed' },
+    { id: LeadStatus.BOOKED, title: 'Booked' },
+    { id: LeadStatus.LOST, title: 'Lost' },
+];
