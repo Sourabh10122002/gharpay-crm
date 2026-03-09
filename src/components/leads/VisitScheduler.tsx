@@ -8,6 +8,7 @@ interface Property {
     _id: string;
     name: string;
     location: string;
+    available: boolean;
 }
 
 interface Lead {
@@ -30,6 +31,7 @@ export default function VisitScheduler({ leadId, onSuccess }: VisitSchedulerProp
     const [property, setProperty] = useState('');
     const [selectedLeadId, setSelectedLeadId] = useState(leadId || '');
     const [notes, setNotes] = useState('');
+    const [outcome, setOutcome] = useState('Pending');
     const [properties, setProperties] = useState<Property[]>([]);
     const [leads, setLeads] = useState<Lead[]>([]);
     const [loading, setLoading] = useState(true);
@@ -80,6 +82,7 @@ export default function VisitScheduler({ leadId, onSuccess }: VisitSchedulerProp
                     visitDate: date,
                     visitTime: time,
                     notes,
+                    outcome,
                     agent: '65ebc9f80a2b5c001f3e1234' // Harcoded for MVP since auth is not fully hooked up
                 })
             });
@@ -92,6 +95,7 @@ export default function VisitScheduler({ leadId, onSuccess }: VisitSchedulerProp
                 setTime('');
                 setProperty('');
                 setNotes('');
+                setOutcome('Pending');
             } else {
                 const err = await response.json();
                 alert(`Error: ${err.message}`);
@@ -178,30 +182,59 @@ export default function VisitScheduler({ leadId, onSuccess }: VisitSchedulerProp
                     </div>
                 )}
 
-                <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                        <MapPin className="h-3 w-3 text-[#4ADE80]" />
-                        Select Property
-                    </label>
-                    <div className="relative">
-                        <select
-                            required
-                            className="w-full p-4 bg-[#1E1E1E] border border-[#2E2E2E] rounded-2xl text-sm text-white focus:ring-1 focus:ring-[#4ADE80] focus:border-[#4ADE80] outline-none transition-all appearance-none cursor-pointer"
-                            value={property}
-                            onChange={(e) => setProperty(e.target.value)}
-                            disabled={loading}
-                        >
-                            <option value="" className="bg-[#1E1E1E]">
-                                {loading ? 'Loading properties...' : 'Select a property...'}
-                            </option>
-                            {properties.map((p) => (
-                                <option key={p._id} value={p._id} className="bg-[#1E1E1E]">
-                                    {p.name} ({p.location})
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <MapPin className="h-3 w-3 text-[#4ADE80]" />
+                            Select Property
+                        </label>
+                        <div className="relative">
+                            <select
+                                required
+                                className="w-full p-4 bg-[#1E1E1E] border border-[#2E2E2E] rounded-2xl text-sm text-white focus:ring-1 focus:ring-[#4ADE80] focus:border-[#4ADE80] outline-none transition-all appearance-none cursor-pointer"
+                                value={property}
+                                onChange={(e) => setProperty(e.target.value)}
+                                disabled={loading}
+                            >
+                                <option value="" className="bg-[#1E1E1E]">
+                                    {loading ? 'Loading properties...' : 'Select a property...'}
                                 </option>
-                            ))}
-                        </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                            <div className="border-l border-t border-slate-500 h-2 w-2 rotate-[225deg]"></div>
+                                {properties.map((p) => (
+                                    <option
+                                        key={p._id}
+                                        value={p._id}
+                                        className="bg-[#1E1E1E]"
+                                        disabled={!p.available}
+                                    >
+                                        {p.name} ({p.location}) {!p.available && ' - FULL'}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <div className="border-l border-t border-slate-500 h-2 w-2 rotate-[225deg]"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <CheckCircle2 className="h-3 w-3 text-[#4ADE80]" />
+                            Visit Outcome
+                        </label>
+                        <div className="relative">
+                            <select
+                                className="w-full p-4 bg-[#1E1E1E] border border-[#2E2E2E] rounded-2xl text-sm text-white focus:ring-1 focus:ring-[#4ADE80] focus:border-[#4ADE80] outline-none transition-all appearance-none cursor-pointer"
+                                value={outcome}
+                                onChange={(e) => setOutcome(e.target.value)}
+                            >
+                                <option value="Pending" className="bg-[#1E1E1E]">Pending</option>
+                                <option value="Interested" className="bg-[#1E1E1E]">Interested</option>
+                                <option value="Not Interested" className="bg-[#1E1E1E]">Not Interested</option>
+                                <option value="Booked" className="bg-[#1E1E1E]">Booked</option>
+                            </select>
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <div className="border-l border-t border-slate-500 h-2 w-2 rotate-[225deg]"></div>
+                            </div>
                         </div>
                     </div>
                 </div>

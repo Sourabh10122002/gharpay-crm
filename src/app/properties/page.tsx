@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { cn } from '@/lib/utils';
 import { Building2, MapPin, IndianRupee, Tag, Search, Filter, ChevronRight } from 'lucide-react';
+import DataStateDisplay from '@/components/common/DataStateDisplay';
 
 interface Property {
     _id: string;
@@ -13,8 +14,6 @@ interface Property {
     type: string;
     available: boolean;
 }
-
-import DataStateDisplay from '@/components/common/DataStateDisplay';
 
 export default function PropertiesPage() {
     const [properties, setProperties] = useState<Property[]>([]);
@@ -32,6 +31,24 @@ export default function PropertiesPage() {
             console.error('Error fetching properties:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleToggleAvailability = async (id: string, currentStatus: boolean) => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/properties/${id}/availability`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ available: !currentStatus })
+            });
+
+            if (response.ok) {
+                const updatedProp = await response.json();
+                setProperties(properties.map(p => p._id === id ? updatedProp : p));
+            }
+        } catch (error) {
+            console.error('Error toggling availability:', error);
         }
     };
 
@@ -74,8 +91,8 @@ export default function PropertiesPage() {
             >
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredProperties.map((property) => (
-                        <div key={property._id} className="bg-[#181818] rounded-[32px] border border-[#2E2E2E] overflow-hidden group hover:border-[#4ADE80]/30 transition-all shadow-xl">
-                            <div className="p-8">
+                        <div key={property._id} className="bg-[#181818] rounded-[32px] border border-[#2E2E2E] overflow-hidden group hover:border-[#4ADE80]/30 transition-all shadow-xl flex flex-col">
+                            <div className="p-8 flex-1">
                                 <div className="flex items-start justify-between mb-6">
                                     <div className="h-14 w-14 rounded-2xl bg-[#252525] flex items-center justify-center text-[#4ADE80] group-hover:bg-[#4ADE80] group-hover:text-[#121212] transition-all">
                                         <Building2 className="h-7 w-7" />
@@ -103,11 +120,25 @@ export default function PropertiesPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-1">
+                                <div className="mt-6 flex items-center gap-1">
                                     <IndianRupee className="h-4 w-4 text-[#4ADE80]" />
                                     <span className="text-2xl font-black text-white">{property.price.toLocaleString()}</span>
                                     <span className="text-slate-500 text-xs font-bold uppercase ml-1">/mo</span>
                                 </div>
+                            </div>
+
+                            <div className="px-8 pb-8">
+                                <button
+                                    onClick={() => handleToggleAvailability(property._id, property.available)}
+                                    className={cn(
+                                        "w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border",
+                                        property.available
+                                            ? "bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500 hover:text-white"
+                                            : "bg-[#4ADE80]/10 text-[#4ADE80] border-[#4ADE80]/20 hover:bg-[#4ADE80] hover:text-[#121212]"
+                                    )}
+                                >
+                                    {property.available ? 'Mark as Full' : 'Mark as Available'}
+                                </button>
                             </div>
                         </div>
                     ))}

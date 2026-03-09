@@ -11,17 +11,24 @@ import {
     MoreVertical,
     ChevronRight,
     Settings2,
-    Filter
+    Filter,
+    AlertCircle,
+    CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import DataStateDisplay from '@/components/common/DataStateDisplay';
+import { getInactiveLeads } from '@/lib/services/reminderService';
+import { LeadStatus } from '@/lib/types';
 
 export default function Dashboard() {
     const [statsData, setStatsData] = useState<any>(null);
     const [monthlyLeads, setMonthlyLeads] = useState<number[]>(new Array(12).fill(0));
     const [recentVisits, setRecentVisits] = useState<any[]>([]);
+    const [reminders, setReminders] = useState<any[]>([]);
+    const [pipelineBreakdown, setPipelineBreakdown] = useState<any[]>([]);
+    const [recentBooked, setRecentBooked] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchDashboardData = async () => {
@@ -42,9 +49,9 @@ export default function Dashboard() {
             // Compute stats
             setStatsData({
                 totalLeads: leads.length,
-                bookedLeads: leads.filter((l: any) => l.status === 'Booked').length,
+                bookedLeads: leads.filter((l: any) => l.status === LeadStatus.BOOKED).length,
                 availableProps: props.filter((p: any) => p.available).length,
-                conversionRate: leads.length > 0 ? ((leads.filter((l: any) => l.status === 'Booked').length / leads.length) * 100).toFixed(1) : 0
+                conversionRate: leads.length > 0 ? ((leads.filter((l: any) => l.status === LeadStatus.BOOKED).length / leads.length) * 100).toFixed(1) : 0
             });
 
             // Compute monthly leads for bar graph
@@ -62,6 +69,21 @@ export default function Dashboard() {
 
             setMonthlyLeads(counts);
             setRecentVisits(visits.slice(0, 3));
+
+            // Inactive lead reminders
+            setReminders(getInactiveLeads(leads).slice(0, 3));
+
+            // Pipeline Breakdown
+            const stages = Object.values(LeadStatus);
+            const breakdown = stages.map(stage => ({
+                name: stage,
+                count: leads.filter((l: any) => l.status === stage).length
+            })).filter(s => s.count > 0);
+            setPipelineBreakdown(breakdown);
+
+            // Recent Booked Leads
+            setRecentBooked(leads.filter((l: any) => l.status === LeadStatus.BOOKED).slice(0, 3));
+
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {
@@ -80,6 +102,15 @@ export default function Dashboard() {
                     <h1 className="text-3xl font-black text-white tracking-tight">Dashboard</h1>
                     <p className="text-slate-500 font-medium mt-1">Real-time Lead & Property Analytics</p>
                 </div>
+
+                {reminders.length > 0 && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-2 flex items-center gap-3">
+                        <AlertCircle className="h-4 w-4 text-amber-500" />
+                        <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">
+                            {reminders.length} Follow-ups Required
+                        </span>
+                    </div>
+                )}
             </div>
 
             <DataStateDisplay
@@ -88,8 +119,8 @@ export default function Dashboard() {
                 emptyMessage="No data available yet"
                 onRefresh={fetchDashboardData}
             >
-                <div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+                <div className="space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {/* Total Leads Card */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -159,9 +190,10 @@ export default function Dashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Monthly Chart */}
                         <div className="lg:col-span-2 bg-[#181818] rounded-[32px] p-8 border border-[#2E2E2E]">
                             <div className="flex items-center justify-between mb-10">
-                                <h3 className="text-xl font-bold text-white uppercase tracking-tight">Monthly Lead Acquisition</h3>
+                                <h3 className="text-xl font-bold text-white uppercase tracking-tight">Lead Acquisition</h3>
                                 <div className="flex gap-4">
                                     <div className="flex items-center gap-2">
                                         <div className="h-2 w-2 rounded-full bg-[#4ADE80]"></div>
@@ -170,21 +202,18 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            <div className="h-72 relative mt-10">
+                            <div className="h-64 relative mt-10">
                                 {/* Grid Lines */}
                                 <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                                     {[0, 1, 2, 3].map((_, i) => (
                                         <div key={i} className="w-full border-t border-[#2E2E2E]/50 border-dashed relative">
-                                            <span className="absolute -left-2 -top-2 text-[8px] font-black text-slate-600 uppercase tracking-tighter">
-                                                {Math.round((100 - (i * 33.3)))}%
-                                            </span>
                                         </div>
                                     ))}
                                     <div className="w-full border-t border-[#2E2E2E]"></div>
                                 </div>
 
                                 {/* Bars Container */}
-                                <div className="absolute inset-0 flex items-end gap-3 px-4 pt-4">
+                                <div className="absolute inset-0 flex items-end gap-2 px-4 pt-4">
                                     {monthlyLeads.map((count, j) => {
                                         const maxVal = Math.max(...monthlyLeads, 1);
                                         let height = (count / maxVal) * 100;
@@ -196,29 +225,10 @@ export default function Dashboard() {
                                                     <motion.div
                                                         initial={{ height: 0 }}
                                                         animate={{ height: `${height}%` }}
-                                                        whileHover={{ scaleX: 1.05, filter: "brightness(1.2)" }}
-                                                        transition={{
-                                                            height: { duration: 1, ease: "circOut", delay: j * 0.05 },
-                                                            scaleX: { duration: 0.2 }
-                                                        }}
-                                                        className="w-full bg-gradient-to-t from-[#166534] via-[#22C55E] to-[#4ADE80] rounded-t-xl shadow-[0_0_25px_rgba(74,222,128,0.1)] border-t border-x border-white/10"
+                                                        className="w-full bg-gradient-to-t from-[#166534] via-[#22C55E] to-[#4ADE80] rounded-t-xl"
                                                     ></motion.div>
-
-                                                    {/* Tooltip/Count Bubble */}
-                                                    {count > 0 && (
-                                                        <motion.div
-                                                            initial={{ opacity: 0, y: 10 }}
-                                                            whileHover={{ opacity: 1, y: -5 }}
-                                                            className="absolute -top-10 left-1/2 -translate-x-1/2 px-2.5 py-1.5 bg-[#1E1E1E]/80 backdrop-blur-md border border-[#4ADE80]/30 rounded-xl shadow-2xl pointer-events-none z-20 group-hover:opacity-100 transition-opacity"
-                                                        >
-                                                            <span className="text-[11px] font-black text-[#4ADE80] whitespace-nowrap leading-none">
-                                                                {count} Leads
-                                                            </span>
-                                                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1E1E1E]/80 border-b border-r border-[#4ADE80]/30 rotate-45"></div>
-                                                        </motion.div>
-                                                    )}
                                                 </div>
-                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter group-hover:text-white transition-colors">
+                                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">
                                                     {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][j]}
                                                 </span>
                                             </div>
@@ -228,6 +238,83 @@ export default function Dashboard() {
                             </div>
                         </div>
 
+                        {/* Pipeline Stage Breakdown */}
+                        <div className="bg-[#181818] rounded-[32px] p-8 border border-[#2E2E2E]">
+                            <h3 className="text-xl font-bold text-white mb-8 tracking-tight">Pipeline Status</h3>
+                            <div className="space-y-5">
+                                {pipelineBreakdown.map((item, idx) => (
+                                    <div key={idx}>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.name}</span>
+                                            <span className="text-xs font-black text-white">{item.count}</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-[#252525] rounded-full overflow-hidden">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${(item.count / statsData?.totalLeads) * 100}%` }}
+                                                className="h-full bg-[#4ADE80]"
+                                            ></motion.div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Reminders / Follow-ups */}
+                        <div className="bg-[#181818] rounded-[32px] p-8 border border-[#2E2E2E]">
+                            <h3 className="text-xl font-bold text-white mb-8 tracking-tight flex items-center gap-3">
+                                Follow-up Needed
+                                {reminders.length > 0 && <span className="text-[10px] bg-amber-500 text-black px-2 py-0.5 rounded-full">{reminders.length}</span>}
+                            </h3>
+                            <div className="space-y-4">
+                                {reminders.length > 0 ? (
+                                    reminders.map((lead) => (
+                                        <Link href={`/leads/${lead._id}`} key={lead._id}>
+                                            <div className="p-4 rounded-2xl bg-[#1E1E1E] border border-[#2E2E2E] hover:border-amber-500/30 transition-all flex items-center justify-between group mb-3">
+                                                <div>
+                                                    <h4 className="font-bold text-white text-sm">{lead.name}</h4>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">{lead.status}</p>
+                                                </div>
+                                                <AlertCircle className="h-4 w-4 text-amber-500 group-hover:scale-110 transition-transform" />
+                                            </div>
+                                        </Link>
+                                    ))
+                                ) : (
+                                    <div className="py-10 text-center">
+                                        <CheckCircle2 className="h-10 w-10 text-slate-800 mx-auto mb-3" />
+                                        <p className="text-slate-600 text-sm font-bold">All caught up!</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Recent Confirmed Bookings */}
+                        <div className="bg-[#181818] rounded-[32px] p-8 border border-[#2E2E2E]">
+                            <h3 className="text-xl font-bold text-white mb-8 tracking-tight">Recent Bookings</h3>
+                            <div className="space-y-4">
+                                {recentBooked.length > 0 ? (
+                                    recentBooked.map((lead) => (
+                                        <Link href={`/leads/${lead._id || lead.id}`} key={lead._id}>
+                                            <div className="p-4 rounded-2xl bg-[#1E1E1E] border border-[#2E2E2E] flex items-center gap-4 hover:border-[#4ADE80]/30 transition-all cursor-pointer mb-3">
+                                                <div className="h-10 w-10 rounded-xl bg-[#4ADE80] flex items-center justify-center text-[#121212] font-black text-sm">
+                                                    {lead.name.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-white text-sm">{lead.name}</h4>
+                                                    <p className="text-[10px] text-[#4ADE80] font-black uppercase tracking-widest mt-0.5">Success</p>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    ))
+                                ) : (
+                                    <p className="text-slate-600 text-sm font-bold py-10 text-center">No bookings confirmed recently</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Upcoming Visits */}
                         <div className="bg-[#181818] rounded-[32px] p-8 border border-[#2E2E2E] flex flex-col">
                             <div className="flex items-center justify-between mb-8">
                                 <h3 className="text-xl font-bold text-white tracking-tight">Upcoming Visits</h3>
@@ -239,7 +326,9 @@ export default function Dashboard() {
                                     recentVisits.map((visit) => (
                                         <div key={visit._id} className="p-4 rounded-2xl bg-[#1E1E1E] border border-[#2E2E2E] hover:border-[#4ADE80]/30 transition-all">
                                             <div className="flex justify-between items-start mb-1">
-                                                <h4 className="font-bold text-white text-sm">{visit.lead?.name}</h4>
+                                                <Link href={`/leads/${visit.lead?._id || visit.lead?.id}`} className="hover:text-[#4ADE80]">
+                                                    <h4 className="font-bold text-white text-sm">{visit.lead?.name}</h4>
+                                                </Link>
                                                 <span className="text-[10px] font-black text-[#4ADE80] uppercase">{visit.visitTime}</span>
                                             </div>
                                             <p className="text-xs text-slate-500 font-medium truncate">{visit.property?.name}</p>
@@ -253,8 +342,8 @@ export default function Dashboard() {
                                 )}
                             </div>
 
-                            <Link href="/visits" className="block">
-                                <button className="mt-8 w-full py-4 bg-[#252525] hover:bg-[#2E2E2E] text-slate-400 hover:text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-[#2E2E2E]">
+                            <Link href="/visits" className="block mt-6">
+                                <button className="w-full py-4 bg-[#252525] hover:bg-[#2E2E2E] text-slate-400 hover:text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-[#2E2E2E]">
                                     View All Schedule
                                 </button>
                             </Link>

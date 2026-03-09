@@ -19,6 +19,11 @@ export interface Lead {
     status: LeadStatus;
     notes?: string;
     createdAt: string;
+    assignedAgent?: {
+        _id: string;
+        name: string;
+        email: string;
+    };
 }
 
 export interface Column {
@@ -36,3 +41,21 @@ export const COLUMNS: Column[] = [
     { id: LeadStatus.BOOKED, title: 'Booked' },
     { id: LeadStatus.LOST, title: 'Lost' },
 ];
+
+export interface Property {
+    _id: string;
+    name: string;
+    location: string;
+    price: string;
+    available: boolean;
+}
+
+export interface Visit {
+    _id: string;
+    lead: any;
+    property: Property;
+    visitDate: string;
+    visitTime: string;
+    outcome: string;
+    notes?: string;
+}

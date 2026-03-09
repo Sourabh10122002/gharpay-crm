@@ -5,6 +5,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea
 import { Lead, LeadStatus, COLUMNS } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { MoreHorizontal, Phone, Mail, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
 
 interface KanbanBoardProps {
     initialLeads: Lead[];
@@ -85,7 +86,9 @@ export default function KanbanBoard({ initialLeads }: KanbanBoardProps) {
                                                         )}
                                                     >
                                                         <div className="flex items-start justify-between mb-3">
-                                                            <h4 className="font-bold text-white text-base leading-tight group-hover:text-[#4ADE80] transition-colors">{lead.name}</h4>
+                                                            <Link href={`/leads/${lead._id || lead.id}`}>
+                                                                <h4 className="font-bold text-white text-base leading-tight group-hover:text-[#4ADE80] transition-colors cursor-pointer">{lead.name}</h4>
+                                                            </Link>
                                                             <MoreHorizontal className="h-4 w-4 text-slate-600" />
                                                         </div>
 

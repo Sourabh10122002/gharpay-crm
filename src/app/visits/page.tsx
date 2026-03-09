@@ -35,6 +35,23 @@ export default function VisitsPage() {
         }
     };
 
+    const handleUpdateOutcome = async (id: string, outcome: string) => {
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await fetch(`${apiUrl}/api/visits/${id}/outcome`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ outcome })
+            });
+
+            if (response.ok) {
+                fetchVisits(); // Refresh list
+            }
+        } catch (error) {
+            console.error('Error updating outcome:', error);
+        }
+    };
+
     useEffect(() => {
         fetchVisits();
     }, []);
@@ -89,7 +106,11 @@ export default function VisitsPage() {
                                                         <h4 className="font-black text-white text-lg group-hover:text-[#4ADE80] transition-colors">{visit.lead?.name || 'Unknown Lead'}</h4>
                                                     </div>
                                                 </div>
-                                                <div className="h-2 w-2 bg-[#4ADE80] rounded-full shadow-[0_0_10px_#4ADE80]"></div>
+                                                <div className={cn(
+                                                    "h-2 w-2 rounded-full",
+                                                    visit.outcome === 'Pending' ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]" :
+                                                        visit.outcome === 'Booked' ? "bg-[#4ADE80] shadow-[0_0_10px_#4ADE80]" : "bg-slate-500"
+                                                )}></div>
                                             </div>
 
                                             <div className="space-y-3 pl-16">
@@ -97,9 +118,20 @@ export default function VisitsPage() {
                                                     <MapPin className="h-4 w-4 text-slate-600" />
                                                     <span>{visit.property?.name} • {visit.property?.location}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm text-slate-400 font-medium">
-                                                    <CheckCircle2 className="h-4 w-4 text-slate-600" />
-                                                    <span className="capitalize">{visit.outcome}</span>
+                                                <div className="flex items-center gap-4 mt-4">
+                                                    <div className="flex items-center gap-2 text-sm text-slate-400 font-medium">
+                                                        <CheckCircle2 className="h-4 w-4 text-slate-600" />
+                                                        <select
+                                                            value={visit.outcome}
+                                                            onChange={(e) => handleUpdateOutcome(visit._id, e.target.value)}
+                                                            className="bg-transparent border-none text-xs font-black uppercase tracking-widest text-[#4ADE80] cursor-pointer focus:ring-0"
+                                                        >
+                                                            <option value="Pending" className="bg-[#181818]">Pending</option>
+                                                            <option value="Interested" className="bg-[#181818]">Interested</option>
+                                                            <option value="Not Interested" className="bg-[#181818]">Not Interested</option>
+                                                            <option value="Booked" className="bg-[#181818]">Booked</option>
+                                                        </select>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -112,4 +144,9 @@ export default function VisitsPage() {
             </div>
         </DashboardLayout>
     );
+}
+
+// Helper for class names
+function cn(...classes: any[]) {
+    return classes.filter(Boolean).join(' ');
 }

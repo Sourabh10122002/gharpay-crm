@@ -99,7 +99,9 @@ function LeadsContent() {
                                                 <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#4ADE80] to-[#22C55E] flex items-center justify-center text-[#121212] font-black text-sm">
                                                     {lead.name.charAt(0)}
                                                 </div>
-                                                <span className="font-bold text-white group-hover:text-[#4ADE80] transition-colors">{lead.name}</span>
+                                                <Link href={`/leads/${lead._id || lead.id}`}>
+                                                    <span className="font-bold text-white group-hover:text-[#4ADE80] transition-colors cursor-pointer">{lead.name}</span>
+                                                </Link>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
