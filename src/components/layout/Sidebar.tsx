@@ -9,7 +9,8 @@ import {
     Calendar,
     Building2,
     Settings,
-    Bell
+    Bell,
+    X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,15 +22,24 @@ const navItems = [
     { name: 'Properties', href: '/properties', icon: Building2 },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }: { isOpen?: boolean, setIsOpen?: (open: boolean) => void }) {
     const pathname = usePathname();
 
     return (
-        <div className="flex h-full w-64 flex-col bg-[#181818] border-r border-[#2E2E2E]">
-            <div className="flex h-20 items-center px-8">
+        <div className={cn(
+            "flex h-full w-64 flex-col bg-[#181818] border-r border-[#2E2E2E] fixed md:static inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out",
+            isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}>
+            <div className="flex h-20 items-center justify-between px-8">
                 <span className="text-2xl font-black italic tracking-tighter text-[#4ADE80]">
                     GHARPAYY
                 </span>
+                <button
+                    onClick={() => setIsOpen && setIsOpen(false)}
+                    className="md:hidden text-slate-400 hover:text-white"
+                >
+                    <X className="h-6 w-6" />
+                </button>
             </div>
 
             <nav className="flex-1 space-y-2 px-4 py-6">
@@ -39,6 +49,7 @@ export default function Sidebar() {
                         <Link
                             key={item.name}
                             href={item.href}
+                            onClick={() => setIsOpen && setIsOpen(false)}
                             className={cn(
                                 "flex items-center gap-4 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 group",
                                 isActive

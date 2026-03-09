@@ -1,12 +1,12 @@
 "use client";
 
-import { Bell, Search, User, LogOut, Settings, BellOff, ChevronRight } from 'lucide-react';
+import { Bell, Search, User, LogOut, Settings, BellOff, ChevronRight, Menu } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [showSearchPreview, setShowSearchPreview] = useState(false);
@@ -98,68 +98,76 @@ export default function Header() {
     };
 
     return (
-        <header className="h-20 border-b border-[#2E2E2E] bg-[#121212] px-10 flex items-center justify-between sticky top-0 z-50">
-            <div className="flex-1 max-w-lg relative group" ref={searchRef}>
-                <form onSubmit={handleSearch} className="relative">
-                    <button
-                        type="submit"
-                        className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-[#4ADE80] hover:text-[#4ADE80] transition-colors z-10"
-                    >
-                        <Search className="h-4 w-4" />
-                    </button>
-                    <input
-                        type="text"
-                        placeholder="Search leads, analytics, data..."
-                        className="w-full pl-12 pr-4 py-3 bg-[#1E1E1E] border border-[#2E2E2E] rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4ADE80] focus:border-[#4ADE80] transition-all"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onFocus={() => searchQuery.length >= 2 && setShowSearchPreview(true)}
-                    />
-                </form>
-
-                {/* Search Results Preview */}
-                {showSearchPreview && searchResults.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-[#181818] border border-[#2E2E2E] rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-                        <div className="p-3 border-b border-[#2E2E2E]/50 flex justify-between items-center bg-[#1E1E1E]/30">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Search Results</span>
-                            <span className="text-[10px] font-bold text-[#4ADE80] pr-2 uppercase">{searchResults.length} Found</span>
-                        </div>
-                        <div className="py-1">
-                            {searchResults.map((lead) => (
-                                <Link
-                                    key={lead._id}
-                                    href={`/leads/${lead._id}`}
-                                    onClick={() => setShowSearchPreview(false)}
-                                    className="flex items-center justify-between px-5 py-3 hover:bg-[#1E1E1E] transition-all group border-b border-[#2E2E2E]/30 last:border-0"
-                                >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="h-2 w-2 rounded-full bg-[#4ADE80] shrink-0"></div>
-                                        <div className="truncate">
-                                            <p className="text-sm font-bold text-white group-hover:text-[#4ADE80] transition-colors">{lead.name}</p>
-                                            <p className="text-[10px] text-slate-500 font-medium">{lead.phoneNumber}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 shrink-0">
-                                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest bg-[#252525] px-2 py-0.5 rounded group-hover:bg-[#4ADE80]/10 group-hover:text-[#4ADE80] transition-colors">
-                                            {lead.status}
-                                        </span>
-                                        <ChevronRight className="h-3 w-3 text-slate-700 group-hover:text-[#4ADE80] transition-colors" />
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                        <Link
-                            href={`/leads?search=${encodeURIComponent(searchQuery)}`}
-                            onClick={() => setShowSearchPreview(false)}
-                            className="block p-4 text-center text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#4ADE80] bg-[#1E1E1E]/50 hover:bg-[#1E1E1E] transition-all border-t border-[#2E2E2E]"
+        <header className="h-16 md:h-20 border-b border-[#2E2E2E] bg-[#121212] px-4 md:px-10 flex items-center justify-between sticky top-0 z-40">
+            <div className="flex items-center gap-3 md:gap-4 flex-1 mr-4">
+                <button
+                    onClick={onMenuClick}
+                    className="p-2 -ml-2 text-slate-400 hover:text-white md:hidden shrink-0"
+                >
+                    <Menu className="h-6 w-6" />
+                </button>
+                <div className="flex-1 max-w-lg relative group" ref={searchRef}>
+                    <form onSubmit={handleSearch} className="relative">
+                        <button
+                            type="submit"
+                            className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-[#4ADE80] hover:text-[#4ADE80] transition-colors z-10"
                         >
-                            Advanced Search for "{searchQuery}"
-                        </Link>
-                    </div>
-                )}
+                            <Search className="h-4 w-4" />
+                        </button>
+                        <input
+                            type="text"
+                            placeholder="Search leads..."
+                            className="w-full pl-9 md:pl-12 pr-4 py-2 md:py-3 bg-[#1E1E1E] border border-[#2E2E2E] rounded-xl md:rounded-2xl text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-[#4ADE80] focus:border-[#4ADE80] transition-all"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => searchQuery.length >= 2 && setShowSearchPreview(true)}
+                        />
+                    </form>
+
+                    {/* Search Results Preview */}
+                    {showSearchPreview && searchResults.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-[#181818] border border-[#2E2E2E] rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                            <div className="p-3 border-b border-[#2E2E2E]/50 flex justify-between items-center bg-[#1E1E1E]/30">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-2">Search Results</span>
+                                <span className="text-[10px] font-bold text-[#4ADE80] pr-2 uppercase">{searchResults.length} Found</span>
+                            </div>
+                            <div className="py-1">
+                                {searchResults.map((lead) => (
+                                    <Link
+                                        key={lead._id}
+                                        href={`/leads/${lead._id}`}
+                                        onClick={() => setShowSearchPreview(false)}
+                                        className="flex items-center justify-between px-5 py-3 hover:bg-[#1E1E1E] transition-all group border-b border-[#2E2E2E]/30 last:border-0"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="h-2 w-2 rounded-full bg-[#4ADE80] shrink-0"></div>
+                                            <div className="truncate">
+                                                <p className="text-sm font-bold text-white group-hover:text-[#4ADE80] transition-colors">{lead.name}</p>
+                                                <p className="text-[10px] text-slate-500 font-medium">{lead.phoneNumber}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3 shrink-0">
+                                            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest bg-[#252525] px-2 py-0.5 rounded group-hover:bg-[#4ADE80]/10 group-hover:text-[#4ADE80] transition-colors">
+                                                {lead.status}
+                                            </span>
+                                            <ChevronRight className="h-3 w-3 text-slate-700 group-hover:text-[#4ADE80] transition-colors" />
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                            <Link
+                                href={`/leads?search=${encodeURIComponent(searchQuery)}`}
+                                onClick={() => setShowSearchPreview(false)}
+                                className="block p-4 text-center text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#4ADE80] bg-[#1E1E1E]/50 hover:bg-[#1E1E1E] transition-all border-t border-[#2E2E2E]"
+                            >
+                                Advanced Search for "{searchQuery}"
+                            </Link>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 md:gap-6 shrink-0">
                 {/* Notifications */}
                 <div className="relative" ref={notificationRef}>
                     <button
@@ -176,7 +184,7 @@ export default function Header() {
                     </button>
 
                     {showNotifications && (
-                        <div className="absolute right-0 mt-3 w-80 bg-[#181818] border border-[#2E2E2E] rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="absolute right-0 md:-right-4 mt-3 w-[280px] md:w-80 bg-[#181818] border border-[#2E2E2E] rounded-2xl md:rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                             <div className="p-5 border-b border-[#2E2E2E] flex items-center justify-between">
                                 <h3 className="font-bold text-white tracking-tight">Notifications</h3>
                                 <span className="text-[10px] font-black text-[#4ADE80] uppercase tracking-widest">{notifications.length} New</span>
@@ -225,7 +233,7 @@ export default function Header() {
                     <button
                         onClick={() => setShowUserMenu(!showUserMenu)}
                         className={cn(
-                            "h-10 w-10 rounded-xl bg-[#1E1E1E] flex items-center justify-center border transition-all",
+                            "h-8 w-8 md:h-10 md:w-10 rounded-xl bg-[#1E1E1E] flex items-center justify-center border transition-all",
                             showUserMenu ? "border-[#4ADE80] shadow-[0_0_15px_rgba(74,222,128,0.2)]" : "border-[#2E2E2E] hover:border-[#4ADE80]/50"
                         )}
                     >
